@@ -99,7 +99,7 @@ export default function LoginPage() {
 
         {/* Footer */}
         <p className="text-xs text-gray-500 text-center mt-6">
-          By continuing, you agree to receive immigration-related updates. Not legal advice.
+        Disclaimer: We provide guidance and immigration-related updates, not legal advice.
         </p>
 
       </div>
