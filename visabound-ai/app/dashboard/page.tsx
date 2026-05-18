@@ -3,42 +3,39 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import { useRouter } from "next/navigation";
 
 export default function Dashboard() {
-  // =========================
-  // PROFILE STATE
-  // =========================
+  const router = useRouter();
+
+  // ================= PROFILE =================
   const [userName, setUserName] = useState("");
   const [visaType, setVisaType] = useState("");
   const [stage, setStage] = useState("");
   const [country, setCountry] = useState("");
 
-  // =========================
-  // TRACKER STATE
-  // =========================
+  // ================= TRACKER =================
   const [authType, setAuthType] = useState("OPT");
   const [status, setStatus] = useState("Not Started");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
-  // =========================
-  // UI STATE
-  // =========================
+  // ================= UI =================
   const [loading, setLoading] = useState(true);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isEditingTracker, setIsEditingTracker] = useState(false);
 
-  // =========================
-  // LOAD DATA
-  // =========================
+  // ================= LOAD DATA =================
   useEffect(() => {
     async function loadData() {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
 
-      // -------------------------
-      // PROFILE LOAD
-      // -------------------------
+      if (!user) {
+        router.push("/login");
+        return;
+      }
+
+      // PROFILE
       const { data: profile } = await supabase
         .from("user_profile")
         .select("*")
@@ -52,14 +49,11 @@ export default function Dashboard() {
         setCountry(profile.country || "");
       }
 
-      // -------------------------
-      // TRACKER LOAD (IMPORTANT FIX)
-      // -------------------------
+      // TRACKER (FIX: remove hardcoded filter)
       const { data: tracker } = await supabase
         .from("work_auth_tracker")
         .select("*")
         .eq("user_id", user.id)
-        .eq("auth_type", "OPT") // default focus (change if needed)
         .maybeSingle();
 
       if (tracker) {
@@ -73,27 +67,26 @@ export default function Dashboard() {
     }
 
     loadData();
-  }, []);
+  }, [router]);
 
-  // =========================
-  // SAVE PROFILE
-  // =========================
+  // ================= LOGOUT =================
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    router.push("/login");
+  }
+
+  // ================= SAVE PROFILE =================
   async function saveProfile() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { error } = await supabase
-      .from("user_profile")
-      .upsert(
-        {
-          user_id: user.id,
-          username: userName,
-          visa_type: visaType,
-          stage,
-          country,
-        },
-        { onConflict: "user_id" }
-      );
+    const { error } = await supabase.from("user_profile").upsert({
+      user_id: user.id,
+      username: userName,
+      visa_type: visaType,
+      stage,
+      country,
+    });
 
     if (error) {
       alert(error.message);
@@ -103,34 +96,23 @@ export default function Dashboard() {
     setIsEditingProfile(false);
   }
 
-  // =========================
-  // SAVE TRACKER (FIXED + DEBUG SAFE)
-  // =========================
+  // ================= SAVE TRACKER =================
   async function saveTracker() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const payload = {
-      user_id: user.id,
-      auth_type: authType,
-      status,
-      start_date: startDate || null,
-      end_date: endDate || null,
-    };
-
-    console.log("Saving tracker:", payload);
-
-    const { data, error } = await supabase
-      .from("work_auth_tracker")
-      .upsert(payload, {
-        onConflict: "user_id,auth_type",
-      })
-      .select();
-
-    console.log("DB response:", data);
+    const { error } = await supabase.from("work_auth_tracker").upsert(
+      {
+        user_id: user.id,
+        auth_type: authType,
+        status,
+        start_date: startDate || null,
+        end_date: endDate || null,
+      },
+      { onConflict: "user_id,auth_type" }
+    );
 
     if (error) {
-      console.error(error);
       alert(error.message);
       return;
     }
@@ -138,89 +120,43 @@ export default function Dashboard() {
     setIsEditingTracker(false);
   }
 
-  // =========================
-  // FAKE PERSONALIZED FEED
-  // =========================
-  function generateFeed() {
-    const feed = [];
-
-    if (visaType === "F-1 Student") {
-      feed.push({
-        title: "F-1 Status Reminder",
-        desc: "Maintain full-time enrollment + update SEVIS within 10 days.",
-      });
-    }
-
-    if (stage === "Applying for OPT/STEM OPT") {
-      feed.push({
-        title: "OPT Filing Window",
-        desc: "You can apply up to 90 days before graduation.",
-      });
-    }
-
-    if (visaType === "STEM OPT") {
-      feed.push({
-        title: "STEM OPT Reporting",
-        desc: "You must report employment every 6 months.",
-      });
-    }
-
-    if (visaType === "H-1B") {
-      feed.push({
-        title: "H-1B Season Alert",
-        desc: "Employer registration typically opens in March.",
-      });
-    }
-
-    if (country) {
-      feed.push({
-        title: "Country Insight",
-        desc: `Students from ${country} may experience processing delays.`,
-      });
-    }
-
-    feed.push({
-      title: "Policy Watch",
-      desc: "USCIS + DOL + State Department updates will appear here soon.",
-    });
-
-    return feed;
-  }
-
-  const feed = generateFeed();
-
-  // =========================
-  // LOADING
-  // =========================
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-slate-950 text-white">
-        Loading dashboard...
+      <div className="h-screen flex items-center justify-center bg-black text-white">
+        Loading...
       </div>
     );
   }
 
-  // =========================
-  // UI
-  // =========================
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-black text-white p-8">
+
       <div className="max-w-6xl mx-auto">
 
         {/* HEADER */}
-        <div className="mb-10">
-          <h1 className="text-4xl font-bold">
-            Welcome back,{" "}
-            <span className="text-blue-400">{userName || "there"}</span>
-          </h1>
-          <p className="text-gray-400 mt-2">
-            Your immigration intelligence dashboard
-          </p>
+        <div className="flex justify-between items-center mb-10">
+          <div>
+            <h1 className="text-4xl font-bold">
+              Welcome back,{" "}
+              <span className="text-blue-400">{userName || "there"}</span>
+            </h1>
+            <p className="text-gray-400 mt-2">
+              Your immigration intelligence dashboard
+            </p>
+          </div>
+
+          {/* LOGOUT BUTTON */}
+          <button
+            onClick={handleLogout}
+            className="px-4 py-2 bg-red-500/10 border border-red-500/30 text-red-300 rounded-xl hover:bg-red-500/20"
+          >
+            Logout
+          </button>
         </div>
 
         <div className="grid md:grid-cols-3 gap-6">
 
-          {/* ================= PROFILE ================= */}
+          {/* PROFILE */}
           <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
             <h2 className="text-lg font-semibold mb-4">Profile</h2>
 
@@ -257,9 +193,8 @@ export default function Dashboard() {
             )}
           </div>
 
-          {/* ================= TRACKER ================= */}
+          {/* TRACKER */}
           <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-
             <div className="flex justify-between mb-4">
               <h2 className="text-lg font-semibold">Work Tracker</h2>
 
@@ -303,8 +238,15 @@ export default function Dashboard() {
                   <option>Denied</option>
                 </select>
 
-                <input type="date" className="w-full bg-black/30 p-2 rounded" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-                <input type="date" className="w-full bg-black/30 p-2 rounded" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                <input type="date" className="w-full bg-black/30 p-2 rounded"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
+
+                <input type="date" className="w-full bg-black/30 p-2 rounded"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                />
 
                 <button
                   onClick={saveTracker}
@@ -316,23 +258,13 @@ export default function Dashboard() {
             )}
           </div>
 
-          {/* ================= FEED ================= */}
+          {/* FEED */}
           <div className="space-y-4">
             <h2 className="text-xl font-semibold">Feed</h2>
 
-            {feed.map((item, i) => (
-              <div
-                key={i}
-                className="bg-white/5 border border-white/10 p-4 rounded-xl"
-              >
-                <div className="text-blue-300 font-semibold">
-                  {item.title}
-                </div>
-                <div className="text-gray-400 text-sm">
-                  {item.desc}
-                </div>
-              </div>
-            ))}
+            <div className="bg-white/5 border border-white/10 p-4 rounded-xl text-gray-400 text-sm">
+              Personalized immigration updates will appear here.
+            </div>
           </div>
 
         </div>
