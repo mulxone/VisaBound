@@ -28,14 +28,16 @@ export default function Dashboard() {
   // ================= LOAD DATA =================
   useEffect(() => {
     async function loadData() {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
       if (!user) {
         router.push("/login");
         return;
       }
 
-      // PROFILE
+      // PROFILE LOAD
       const { data: profile } = await supabase
         .from("user_profile")
         .select("*")
@@ -49,7 +51,7 @@ export default function Dashboard() {
         setCountry(profile.country || "");
       }
 
-      // TRACKER (FIX: remove hardcoded filter)
+      // TRACKER LOAD
       const { data: tracker } = await supabase
         .from("work_auth_tracker")
         .select("*")
@@ -75,18 +77,28 @@ export default function Dashboard() {
     router.push("/login");
   }
 
-  // ================= SAVE PROFILE =================
+  // ================= PROFILE SAVE (FIXED - NO DUPLICATES EVER) =================
   async function saveProfile() {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
     if (!user) return;
 
-    const { error } = await supabase.from("user_profile").upsert({
-      user_id: user.id,
-      username: userName,
-      visa_type: visaType,
-      stage,
-      country,
-    });
+    const { error } = await supabase
+      .from("user_profile")
+      .upsert(
+        {
+          user_id: user.id,
+          username: userName,
+          visa_type: visaType,
+          stage,
+          country,
+        },
+        {
+          onConflict: "user_id",
+        }
+      );
 
     if (error) {
       alert(error.message);
@@ -96,21 +108,28 @@ export default function Dashboard() {
     setIsEditingProfile(false);
   }
 
-  // ================= SAVE TRACKER =================
+  // ================= TRACKER SAVE =================
   async function saveTracker() {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
     if (!user) return;
 
-    const { error } = await supabase.from("work_auth_tracker").upsert(
-      {
-        user_id: user.id,
-        auth_type: authType,
-        status,
-        start_date: startDate || null,
-        end_date: endDate || null,
-      },
-      { onConflict: "user_id,auth_type" }
-    );
+    const { error } = await supabase
+      .from("work_auth_tracker")
+      .upsert(
+        {
+          user_id: user.id,
+          auth_type: authType,
+          status,
+          start_date: startDate || null,
+          end_date: endDate || null,
+        },
+        {
+          onConflict: "user_id,auth_type",
+        }
+      );
 
     if (error) {
       alert(error.message);
@@ -145,10 +164,9 @@ export default function Dashboard() {
             </p>
           </div>
 
-          {/* LOGOUT BUTTON */}
           <button
             onClick={handleLogout}
-            className="px-4 py-2 bg-red-500/10 border border-red-500/30 text-red-300 rounded-xl hover:bg-red-500/20"
+            className="px-4 py-2 bg-red-500/10 border border-red-500/30 text-red-300 rounded-xl"
           >
             Logout
           </button>
@@ -156,7 +174,7 @@ export default function Dashboard() {
 
         <div className="grid md:grid-cols-3 gap-6">
 
-          {/* PROFILE */}
+          {/* ================= PROFILE ================= */}
           <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
             <h2 className="text-lg font-semibold mb-4">Profile</h2>
 
@@ -178,10 +196,49 @@ export default function Dashboard() {
               </>
             ) : (
               <div className="space-y-2">
-                <input className="w-full bg-black/30 p-2 rounded" value={userName} onChange={(e) => setUserName(e.target.value)} />
-                <input className="w-full bg-black/30 p-2 rounded" value={visaType} onChange={(e) => setVisaType(e.target.value)} />
-                <input className="w-full bg-black/30 p-2 rounded" value={stage} onChange={(e) => setStage(e.target.value)} />
-                <input className="w-full bg-black/30 p-2 rounded" value={country} onChange={(e) => setCountry(e.target.value)} />
+
+                <input
+                  className="w-full bg-black/30 p-2 rounded"
+                  value={userName}
+                  onChange={(e) => setUserName(e.target.value)}
+                  placeholder="Username"
+                />
+
+                <select
+                  value={visaType}
+                  onChange={(e) => setVisaType(e.target.value)}
+                  className="w-full bg-black/30 p-2 rounded"
+                >
+                  <option value="">Visa Type</option>
+                  <option>F-1 Student</option>
+                  <option>OPT</option>
+                  <option>STEM OPT</option>
+                  <option>H-1B</option>
+                  <option>Preparing to Apply</option>
+                  <option>Other</option>
+                </select>
+
+                <select
+                  value={stage}
+                  onChange={(e) => setStage(e.target.value)}
+                  className="w-full bg-black/30 p-2 rounded"
+                >
+                  <option value="">Stage</option>
+                  <option>Studying</option>
+                  <option>Graduating Soon</option>
+                  <option>Looking for Work</option>
+                  <option>Applying for OPT/STEM OPT</option>
+                  <option>Working</option>
+                  <option>Waiting for USCIS Decision</option>
+                  <option>Exploring Options</option>
+                </select>
+
+                <input
+                  className="w-full bg-black/30 p-2 rounded"
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
+                  placeholder="Country"
+                />
 
                 <button
                   onClick={saveProfile}
@@ -193,8 +250,9 @@ export default function Dashboard() {
             )}
           </div>
 
-          {/* TRACKER */}
+          {/* ================= TRACKER ================= */}
           <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+
             <div className="flex justify-between mb-4">
               <h2 className="text-lg font-semibold">Work Tracker</h2>
 
@@ -238,12 +296,16 @@ export default function Dashboard() {
                   <option>Denied</option>
                 </select>
 
-                <input type="date" className="w-full bg-black/30 p-2 rounded"
+                <input
+                  type="date"
+                  className="w-full bg-black/30 p-2 rounded"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
                 />
 
-                <input type="date" className="w-full bg-black/30 p-2 rounded"
+                <input
+                  type="date"
+                  className="w-full bg-black/30 p-2 rounded"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
                 />
@@ -258,7 +320,7 @@ export default function Dashboard() {
             )}
           </div>
 
-          {/* FEED */}
+          {/* ================= FEED ================= */}
           <div className="space-y-4">
             <h2 className="text-xl font-semibold">Feed</h2>
 
