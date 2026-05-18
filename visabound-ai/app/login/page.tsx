@@ -1,5 +1,6 @@
 
 "use client";
+
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
@@ -41,35 +42,41 @@ export default function LoginPage() {
     if (error) {
       alert(error.message);
     } else {
-      router.push("/dashboard");
+      router.push("/onboarding");
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 px-4">
-      
-      <div className="w-full max-w-md bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-8">
+    <div className="relative min-h-screen flex items-center justify-center bg-black text-white px-4 overflow-hidden">
+
+      {/* Glow Background (matches onboarding) */}
+      <div className="absolute top-[-200px] left-[-200px] w-[500px] h-[500px] bg-blue-600/20 blur-3xl rounded-full" />
+      <div className="absolute bottom-[-200px] right-[-200px] w-[500px] h-[500px] bg-cyan-500/10 blur-3xl rounded-full" />
+
+      {/* Card */}
+      <div className="relative w-full max-w-md bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-[0_0_80px_rgba(59,130,246,0.15)] p-8">
 
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white tracking-tight">
-            VisaBound<span className="text-blue-400">.ai</span>
+          <h1 className="text-3xl font-bold tracking-tight">
+            WorkStatus<span className="text-transparent bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text">.ai</span>
           </h1>
+
           <p className="text-sm text-gray-400 mt-2">
-          Stay ahead on visa rules and work authorization
+            Stay ahead on immigration rules & work authorization
           </p>
         </div>
 
         {/* Inputs */}
         <div className="space-y-4">
           <input
-            className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/10 text-white placeholder-gray-400 outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-3 rounded-xl bg-white/[0.03] border border-white/10 text-white placeholder-gray-500 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition"
             placeholder="Email address"
             onChange={(e) => setEmail(e.target.value)}
           />
 
           <input
-            className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/10 text-white placeholder-gray-400 outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-3 rounded-xl bg-white/[0.03] border border-white/10 text-white placeholder-gray-500 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition"
             type="password"
             placeholder="Password"
             onChange={(e) => setPassword(e.target.value)}
@@ -78,11 +85,11 @@ export default function LoginPage() {
 
         {/* Buttons */}
         <div className="mt-6 space-y-3">
-          
+
           <button
             onClick={signIn}
             disabled={loading}
-            className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 transition text-white font-medium shadow-lg disabled:opacity-50"
+            className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:scale-[1.01] transition font-semibold shadow-lg shadow-blue-500/20 disabled:opacity-50"
           >
             {loading ? "Logging in..." : "Login"}
           </button>
@@ -90,7 +97,7 @@ export default function LoginPage() {
           <button
             onClick={signUp}
             disabled={loading}
-            className="w-full py-3 rounded-xl bg-white/10 hover:bg-white/20 transition text-white font-medium border border-white/10"
+            className="w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 transition text-white font-medium border border-white/10"
           >
             Create account
           </button>
@@ -98,10 +105,9 @@ export default function LoginPage() {
         </div>
 
         {/* Footer */}
-        <p className="text-xs text-gray-500 text-center mt-6">
-        Disclaimer: We provide guidance and immigration-related updates, not legal advice.
+        <p className="text-xs text-gray-500 text-center mt-6 border-t border-white/10 pt-4">
+          WorkStatus.ai provides guidance, not legal advice.
         </p>
-
       </div>
     </div>
   );
